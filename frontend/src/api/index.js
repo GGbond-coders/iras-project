@@ -68,8 +68,12 @@ export const difyApi = {
   getJobProfile(jobName) {
     return api.post('/api/dify/job-profile', { job_name: jobName })
   },
-  diagnoseResume(resumeText) {
-    return api.post('/api/dify/diagnose', { resume_text: resumeText })
+  diagnoseResume(file) {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post('/api/dify/diagnose', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
   }
 }
 

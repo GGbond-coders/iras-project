@@ -5,6 +5,7 @@ import com.iras.service.DifyService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
@@ -36,17 +37,16 @@ public class DifyController {
     }
 
     /**
-     * 智能诊断 - 接收简历文本，转发 Dify
+     * 智能诊断 - 接收简历文件，转发 Dify
      */
     @PostMapping("/diagnose")
-    public Result<String> diagnoseResume(@RequestBody Map<String, String> request) {
-        String resumeText = request.get("resume_text");
-        if (resumeText == null || resumeText.isBlank()) {
-            return Result.error(400, "简历内容不能为空");
+    public Result<String> diagnoseResume(@RequestParam("file") MultipartFile file) {
+        if (file.isEmpty()) {
+            return Result.error(400, "请上传简历文件");
         }
         try {
-            log.info("调用智能诊断 API, resumeText length={}", resumeText.length());
-            String result = difyService.diagnoseResume(resumeText);
+            log.info("调用智能诊断 API, filename={}, size={}", file.getOriginalFilename(), file.getSize());
+            String result = difyService.diagnoseResume(file);
             return Result.success(result);
         } catch (Exception e) {
             log.error("智能诊断 API 调用失败", e);

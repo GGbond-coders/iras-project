@@ -7,24 +7,38 @@
         </div>
       </template>
 
-      <!-- 输入区域 -->
-      <div class="input-section">
-        <el-input
-          v-model="resumeText"
-          type="textarea"
-          :rows="8"
-          placeholder="请粘贴您的简历内容...&#10;&#10;包含：个人技能、项目经验、工作年限、求职意向等信息"
-          maxlength="10000"
-          show-word-limit
-        />
+      <!-- 文件上传区域 -->
+      <div class="upload-section">
+        <el-upload
+          ref="uploadRef"
+          class="resume-upload"
+          drag
+          :auto-upload="false"
+          :limit="1"
+          :on-change="handleFileChange"
+          :on-exceed="handleExceed"
+          :on-remove="handleRemove"
+          accept=".txt,.text,.pdf,.doc,.docx"
+        >
+          <el-icon class="el-icon--upload"><UploadFilled /></el-icon>
+          <div class="el-upload__text">
+            将简历文件拖到此处，或 <em>点击上传</em>
+          </div>
+          <template #tip>
+            <div class="el-upload__tip">
+              支持 .txt / .text / .pdf / .doc / .docx 格式，文件大小不超过 10MB
+            </div>
+          </template>
+        </el-upload>
+
         <div class="action-bar">
-          <el-button type="primary" size="large" :loading="loading" @click="diagnose">
+          <el-button type="primary" size="large" :loading="loading" :disabled="!selectedFile" @click="diagnose">
             <el-icon v-if="!loading"><MagicStick /></el-icon>
             {{ loading ? 'AI 诊断中...' : '开始诊断' }}
           </el-button>
           <el-button size="large" @click="clearAll" :disabled="loading">清空</el-button>
         </div>
-        <p class="input-tip">💡 AI 将为您匹配最适合的岗位并生成详细的诊断报告（约需 3 分钟）</p>
+        <p class="input-tip">💡 上传简历文件后，AI 将为您匹配最适合的岗位并生成详细的诊断报告（约需 3 分钟）</p>
       </div>
 
       <!-- 加载提示 -->
@@ -125,7 +139,8 @@ import { difyApi } from '../api'
 import { ElMessage } from 'element-plus'
 import { marked } from 'marked'
 
-const resumeText = ref('')
+const uploadRef = ref(null)
+const selectedFile = ref(null)
 const loading = ref(false)
 const progress = ref(0)
 const diagnosisResult = ref(false)
@@ -145,9 +160,21 @@ function getScoreColor(score) {
   return '#f56c6c'
 }
 
+function handleFileChange(file) {
+  selectedFile.value = file.raw
+}
+
+function handleExceed() {
+  ElMessage.warning('只能上传一个文件，请先移除已选文件')
+}
+
+function handleRemove() {
+  selectedFile.value = null
+}
+
 async function diagnose() {
-  if (!resumeText.value.trim()) {
-    ElMessage.warning('请输入简历内容')
+  if (!selectedFile.value) {
+    ElMessage.warning('请先上传简历文件')
     return
   }
 
@@ -165,7 +192,7 @@ async function diagnose() {
   }, 2000)
 
   try {
-    const res = await difyApi.diagnoseResume(resumeText.value.trim())
+    const res = await difyApi.diagnoseResume(selectedFile.value)
     let data = res.data
 
     // 提取 <think> 标签内容
@@ -183,7 +210,6 @@ async function diagnose() {
       } else if (parsed.matches) {
         matches.value = parsed.matches
       } else if (parsed.result) {
-        // 嵌套的 result 字段
         const inner = parsed.result
         const innerThink = inner.match(/<think>([\s\S]*?)<\/think>/)
         if (innerThink) {
@@ -215,7 +241,8 @@ async function diagnose() {
 }
 
 function clearAll() {
-  resumeText.value = ''
+  selectedFile.value = null
+  uploadRef.value?.clearFiles()
   diagnosisResult.value = false
   matches.value = []
   rawResult.value = ''
@@ -237,21 +264,31 @@ onDeactivated(() => {
   font-weight: 600;
 }
 
-.input-section {
-  max-width: 800px;
+.upload-section {
+  max-width: 600px;
   margin: 0 auto;
 }
 
+.resume-upload {
+  width: 100%;
+}
+
+.resume-upload :deep(.el-upload-dragger) {
+  padding: 40px 20px;
+}
+
 .action-bar {
-  margin-top: 16px;
+  margin-top: 20px;
   display: flex;
   gap: 12px;
+  justify-content: center;
 }
 
 .input-tip {
   margin-top: 10px;
   color: #909399;
   font-size: 13px;
+  text-align: center;
 }
 
 .loading-section {
