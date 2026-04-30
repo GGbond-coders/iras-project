@@ -32,23 +32,22 @@ public class DifyServiceImpl implements DifyService {
     @Override
     public String getJobProfile(String jobName) {
         String url = baseUrl + "/workflows/run";
-        String requestBody = buildWorkflowRequest(jobName, jobProfileKey);
+        String requestBody = buildWorkflowRequest("job_name", jobName);
         return callDifyApi(url, requestBody, jobProfileKey);
     }
 
     @Override
     public String diagnoseResume(String resumeText) {
         String url = baseUrl + "/workflows/run";
-        String requestBody = buildWorkflowRequest(resumeText, resumeDiagnosisKey);
+        String requestBody = buildWorkflowRequest("resume_text", resumeText);
         return callDifyApi(url, requestBody, resumeDiagnosisKey);
     }
 
-    private String buildWorkflowRequest(String input, String apiKey) {
+    private String buildWorkflowRequest(String inputKey, String inputValue) {
         try {
-            // 构建 Dify Workflow API 请求体
             return objectMapper.writeValueAsString(new java.util.HashMap<>() {{
                 put("inputs", new java.util.HashMap<>() {{
-                    put("resume_text", input);
+                    put(inputKey, inputValue);
                 }});
                 put("response_mode", "blocking");
                 put("user", "iras-user");
