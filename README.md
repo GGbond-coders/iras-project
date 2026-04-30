@@ -1,4 +1,4 @@
-# 🎓 智能简历诊断系统 (IRAS)
+# 智能简历诊断系统 (IRAS)
 
 > Intelligent Resume Analysis System — 基于 B/S 架构的招聘辅助平台
 
@@ -40,10 +40,34 @@
 
 ## 功能模块
 
-1. **用户认证** — 注册/登录，支持用户名或邮箱登录，JWT 无状态会话
-2. **职位检索** — 多字段模糊匹配（职位名、城市、薪资范围），分页展示
-3. **职能画像** — 输入职位名称，AI 生成硬技能、软技能、工具、经验要求等画像
-4. **智能诊断** — 粘贴简历内容，AI 匹配岗位并生成匹配分、差距分析、面试建议
+### 1. 用户认证
+
+支持用户名或邮箱登录，JWT 无状态会话，Token 有效期 24 小时。
+
+### 2. 职位检索
+
+通过职位名称、工作地点、薪资范围进行多字段组合筛选，结果以分页表格展示，支持查看单个职位的详细信息。默认每页 20 条，支持切换为 50/100 条。
+
+### 3. 职能画像
+
+输入任意职位名称（如：软件工程师、产品经理、建筑师），AI 自动生成该职位的完整能力画像，包含：
+- 硬技能要求
+- 软技能要求
+- 常用工具清单
+- 工作经验要求
+- 学历要求
+
+分析耗时约 2 分钟。
+
+### 4. 智能诊断
+
+上传简历文件（支持 .txt / .pdf / .doc / .docx 格式，最大 10MB），AI 自动分析简历内容并与岗位库进行匹配，生成诊断报告，包含：
+- 匹配岗位及匹配分（百分比）
+- 匹配原因分析
+- 差距分析
+- 面试建议
+
+上传文件后可随时点击「重新上传」替换文件。分析耗时约 3 分钟。
 
 ## 快速启动
 
@@ -109,7 +133,7 @@ iras-project/
         ├── store/                    # Pinia 状态管理
         └── views/                    # 页面组件
             ├── Login.vue             # 登录/注册
-            ├── Layout.vue            # 主布局
+            ├── Layout.vue            # 主布局（侧边栏导航）
             ├── Jobs.vue              # 职位检索
             ├── JobProfile.vue        # 职能画像
             └── Diagnosis.vue         # 智能诊断
@@ -118,30 +142,40 @@ iras-project/
 ## API 接口
 
 ### 认证
-- `POST /iras/api/auth/register` — 注册
-- `POST /iras/api/auth/login` — 登录
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | /iras/api/auth/register | 注册 |
+| POST | /iras/api/auth/login | 登录 |
 
 ### 职位
-- `GET /iras/api/jobs/search?jobName=&city=&salaryMin=&salaryMax=&page=1&size=20` — 搜索
-- `GET /iras/api/jobs/{id}` — 详情
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /iras/api/jobs/search?jobName=&city=&salaryMin=&salaryMax=&page=1&size=20 | 搜索 |
+| GET | /iras/api/jobs/{id} | 详情 |
 
 ### AI
-- `POST /iras/api/dify/job-profile` — 职能画像
-- `POST /iras/api/dify/diagnose` — 简历诊断
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | /iras/api/dify/job-profile | 职能画像（JSON body: { "job_name": "..." }） |
+| POST | /iras/api/dify/diagnose | 简历诊断（multipart/form-data，字段名: file） |
 
 ## 配置说明
 
-Dify API 配置在 `application.yml` 中：
+Dify API 配置在 `backend/src/main/resources/application.yml` 中：
 
 ```yaml
 dify:
   base-url: https://api.dify.ai/v1
-  job-profile-key: app-SVp3ITSYP4x33OGHZ2cOEKOc
-  resume-diagnosis-key: app-vlhpBeJF3XsF0TaMMqyqAAKP
+  job-profile-key: <your-job-profile-app-key>
+  resume-diagnosis-key: <your-resume-diagnosis-app-key>
 ```
 
 ## 注意事项
 
-- Dify AI 推理时间约为 **2-3 分钟**，前端已设置 5 分钟超时
+- Dify AI 推理时间约为 2-3 分钟，前端已设置 5 分钟超时
 - 页面使用 `keep-alive` 缓存，跳转后返回会保留之前的内容
 - JWT Token 有效期为 24 小时
+- 简历诊断的 Dify workflow 要求 `resume_text` 输入变量为文件列表类型（ArrayFiles），后端已做适配
