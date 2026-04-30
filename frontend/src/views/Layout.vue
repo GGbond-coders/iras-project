@@ -3,8 +3,7 @@
     <!-- 侧边栏 -->
     <el-aside :width="isCollapse ? '64px' : '220px'" class="layout-aside">
       <div class="aside-header" @click="isCollapse = !isCollapse">
-        <span class="aside-logo">📋</span>
-        <span v-show="!isCollapse" class="aside-title">IRAS</span>
+        <span class="aside-title">IRAS</span>
       </div>
 
       <el-menu

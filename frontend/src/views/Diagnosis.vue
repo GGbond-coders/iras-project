@@ -3,13 +3,15 @@
     <el-card shadow="never">
       <template #header>
         <div class="card-header">
-          <span>🩺 智能简历诊断</span>
+          <span>智能简历诊断</span>
         </div>
       </template>
 
       <!-- 文件上传区域 -->
       <div class="upload-section">
+        <!-- 未选择文件时：显示上传区域 -->
         <el-upload
+          v-if="!selectedFile"
           ref="uploadRef"
           class="resume-upload"
           drag
@@ -17,7 +19,6 @@
           :limit="1"
           :on-change="handleFileChange"
           :on-exceed="handleExceed"
-          :on-remove="handleRemove"
           accept=".txt,.text,.pdf,.doc,.docx"
         >
           <div class="el-upload__text">
@@ -30,13 +31,22 @@
           </template>
         </el-upload>
 
+        <!-- 已选择文件时：显示文件信息 + 重新上传按钮 -->
+        <div v-else class="file-selected">
+          <div class="file-info">
+            <span class="file-name">{{ selectedFile.name }}</span>
+            <span class="file-size">({{ (selectedFile.size / 1024).toFixed(1) }} KB)</span>
+          </div>
+          <el-button size="small" @click="reUpload" :disabled="loading">重新上传</el-button>
+        </div>
+
         <div class="action-bar">
           <el-button type="primary" size="large" :loading="loading" :disabled="!selectedFile" @click="diagnose">
             {{ loading ? 'AI 诊断中...' : '开始诊断' }}
           </el-button>
           <el-button size="large" @click="clearAll" :disabled="loading">清空</el-button>
         </div>
-        <p class="input-tip">💡 上传简历文件后，AI 将为您匹配最适合的岗位并生成详细的诊断报告（约需 3 分钟）</p>
+        <p class="input-tip">上传简历文件后，AI 将为您匹配最适合的岗位并生成详细的诊断报告（约需 3 分钟）</p>
       </div>
 
       <!-- 加载提示 -->
@@ -62,7 +72,7 @@
 
         <!-- 匹配结果列表 -->
         <div v-if="matches.length > 0">
-          <h3 class="result-title">📋 诊断报告 — 共匹配到 {{ matches.length }} 个岗位</h3>
+          <h3 class="result-title">诊断报告 — 共匹配到 {{ matches.length }} 个岗位</h3>
 
           <div v-for="(match, index) in matches" :key="index" class="match-card">
             <el-card shadow="hover">
@@ -84,7 +94,7 @@
 
               <!-- 薪资 -->
               <div class="salary-row" v-if="match.salary">
-                <span class="salary-label">💰 薪资：</span>
+                <span class="salary-label">薪资：</span>
                 <span class="salary-value">{{ match.salary }}</span>
               </div>
 
@@ -115,7 +125,7 @@
 
         <!-- 如果返回的是纯文本 -->
         <div v-else-if="rawResult" class="raw-result">
-          <h3>📋 诊断报告</h3>
+          <h3>诊断报告</h3>
           <div class="markdown-body" v-html="renderedResult"></div>
         </div>
       </div>
@@ -156,8 +166,9 @@ function handleExceed() {
   ElMessage.warning('只能上传一个文件，请先移除已选文件')
 }
 
-function handleRemove() {
+function reUpload() {
   selectedFile.value = null
+  uploadRef.value?.clearFiles()
 }
 
 async function diagnose() {
@@ -250,6 +261,33 @@ function clearAll() {
 
 .resume-upload :deep(.el-upload-dragger) {
   padding: 40px 20px;
+}
+
+.file-selected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #f5f7fa;
+  border: 1px solid #dcdfe6;
+  border-radius: 8px;
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.file-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.file-size {
+  font-size: 13px;
+  color: #909399;
 }
 
 .action-bar {
@@ -373,13 +411,13 @@ function clearAll() {
 }
 
 .gap-list li::before {
-  content: '⚠️';
+  content: '';
   position: absolute;
   left: 0;
 }
 
 .advice-list li::before {
-  content: '💡';
+  content: '';
   position: absolute;
   left: 0;
 }

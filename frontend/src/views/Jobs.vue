@@ -4,7 +4,7 @@
     <el-card class="search-card" shadow="never">
       <template #header>
         <div class="card-header">
-          <span>🔍 职位搜索</span>
+          <span>职位搜索</span>
         </div>
       </template>
 
@@ -31,7 +31,7 @@
     <el-card class="result-card" shadow="never">
       <template #header>
         <div class="card-header">
-          <span>📊 搜索结果（共 {{ total }} 条）</span>
+          <span>搜索结果（共 {{ total }} 条）</span>
         </div>
       </template>
 

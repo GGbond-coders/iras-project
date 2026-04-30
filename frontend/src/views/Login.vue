@@ -2,7 +2,6 @@
   <div class="login-container">
     <div class="login-card">
       <div class="login-header">
-        <div class="logo-icon">📋</div>
         <h1>智能简历诊断系统</h1>
         <p>Intelligent Resume Analysis System</p>
       </div>

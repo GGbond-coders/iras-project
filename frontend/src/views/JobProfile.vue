@@ -3,7 +3,7 @@
     <el-card shadow="never">
       <template #header>
         <div class="card-header">
-          <span>🎯 职能画像分析</span>
+          <span>职能画像分析</span>
         </div>
       </template>
 
@@ -22,7 +22,7 @@
             </el-button>
           </template>
         </el-input>
-        <p class="input-tip">💡 AI 将为您生成该职位的技能要求、工具清单、经验要求等完整画像（约需 2 分钟）</p>
+        <p class="input-tip">AI 将为您生成该职位的技能要求、工具清单、经验要求等完整画像（约需 2 分钟）</p>
       </div>
 
       <!-- 加载提示 -->
@@ -99,11 +99,11 @@
                 </div>
               </template>
               <div class="exp-section">
-                <h4>💼 工作经验</h4>
+                <h4>工作经验</h4>
                 <p>{{ profileData.experience }}</p>
               </div>
               <div class="exp-section" style="margin-top: 16px">
-                <h4>🎓 学历要求</h4>
+                <h4>学历要求</h4>
                 <p>{{ profileData.education }}</p>
               </div>
             </el-card>
