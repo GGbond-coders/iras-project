@@ -11,10 +11,10 @@
         <el-tab-pane label="登录" name="login">
           <el-form ref="loginFormRef" :model="loginForm" :rules="loginRules" @keyup.enter="handleLogin">
             <el-form-item prop="username">
-              <el-input v-model="loginForm.username" placeholder="用户名或邮箱" :prefix-icon="User" size="large" />
+              <el-input v-model="loginForm.username" placeholder="用户名或邮箱" size="large" />
             </el-form-item>
             <el-form-item prop="password">
-              <el-input v-model="loginForm.password" type="password" placeholder="密码" :prefix-icon="Lock" size="large" show-password />
+              <el-input v-model="loginForm.password" type="password" placeholder="密码" size="large" show-password />
             </el-form-item>
             <el-form-item>
               <el-button type="primary" size="large" :loading="loading" @click="handleLogin" style="width: 100%">
@@ -27,16 +27,16 @@
         <el-tab-pane label="注册" name="register">
           <el-form ref="registerFormRef" :model="registerForm" :rules="registerRules" @keyup.enter="handleRegister">
             <el-form-item prop="username">
-              <el-input v-model="registerForm.username" placeholder="用户名" :prefix-icon="User" size="large" />
+              <el-input v-model="registerForm.username" placeholder="用户名" size="large" />
             </el-form-item>
             <el-form-item prop="email">
-              <el-input v-model="registerForm.email" placeholder="邮箱（选填）" :prefix-icon="Message" size="large" />
+              <el-input v-model="registerForm.email" placeholder="邮箱（选填）" size="large" />
             </el-form-item>
             <el-form-item prop="password">
-              <el-input v-model="registerForm.password" type="password" placeholder="密码" :prefix-icon="Lock" size="large" show-password />
+              <el-input v-model="registerForm.password" type="password" placeholder="密码" size="large" show-password />
             </el-form-item>
             <el-form-item prop="confirmPassword">
-              <el-input v-model="registerForm.confirmPassword" type="password" placeholder="确认密码" :prefix-icon="Lock" size="large" show-password />
+              <el-input v-model="registerForm.confirmPassword" type="password" placeholder="确认密码" size="large" show-password />
             </el-form-item>
             <el-form-item>
               <el-button type="primary" size="large" :loading="loading" @click="handleRegister" style="width: 100%">
@@ -53,7 +53,6 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { User, Lock, Message } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { authApi } from '../api'
 import { useUserStore } from '../store/user'

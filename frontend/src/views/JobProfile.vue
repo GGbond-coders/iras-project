@@ -18,7 +18,6 @@
           <template #prepend>职位名称</template>
           <template #append>
             <el-button type="primary" :loading="loading" @click="analyze">
-              <el-icon v-if="!loading"><DataAnalysis /></el-icon>
               {{ loading ? 'AI 分析中...' : '开始分析' }}
             </el-button>
           </template>
@@ -28,8 +27,7 @@
 
       <!-- 加载提示 -->
       <div v-if="loading" class="loading-section">
-        <el-progress :percentage="progress" :stroke-width="8" :duration="3" />
-        <p class="loading-text">🤖 AI 正在深度分析职位画像，请耐心等待...</p>
+        <p class="loading-text">AI 正在深度分析职位画像，请耐心等待...</p>
       </div>
 
       <!-- 分析结果 -->
@@ -47,13 +45,11 @@
             <el-card class="skill-card" shadow="hover">
               <template #header>
                 <div class="skill-header">
-                  <el-icon color="#409eff"><Cpu /></el-icon>
                   <span>硬技能要求</span>
                 </div>
               </template>
               <ul class="skill-list">
                 <li v-for="(skill, i) in profileData.hard_skills" :key="i">
-                  <el-icon color="#67c23a"><CircleCheck /></el-icon>
                   {{ skill }}
                 </li>
               </ul>
@@ -65,13 +61,11 @@
             <el-card class="skill-card" shadow="hover">
               <template #header>
                 <div class="skill-header">
-                  <el-icon color="#e6a23c"><User /></el-icon>
                   <span>软技能要求</span>
                 </div>
               </template>
               <ul class="skill-list">
                 <li v-for="(skill, i) in profileData.soft_skills" :key="i">
-                  <el-icon color="#67c23a"><CircleCheck /></el-icon>
                   {{ skill }}
                 </li>
               </ul>
@@ -85,7 +79,6 @@
             <el-card class="skill-card" shadow="hover">
               <template #header>
                 <div class="skill-header">
-                  <el-icon color="#909399"><SetUp /></el-icon>
                   <span>常用工具</span>
                 </div>
               </template>
@@ -102,7 +95,6 @@
             <el-card class="skill-card" shadow="hover">
               <template #header>
                 <div class="skill-header">
-                  <el-icon color="#f56c6c"><Document /></el-icon>
                   <span>经验与学历</span>
                 </div>
               </template>
@@ -123,15 +115,13 @@
 </template>
 
 <script setup>
-import { ref, onDeactivated } from 'vue'
+import { ref } from 'vue'
 import { difyApi } from '../api'
 import { ElMessage } from 'element-plus'
 
 const jobName = ref('')
 const loading = ref(false)
 const profileData = ref(null)
-const progress = ref(0)
-let progressTimer = null
 
 async function analyze() {
   if (!jobName.value.trim()) {
@@ -141,34 +131,19 @@ async function analyze() {
 
   loading.value = true
   profileData.value = null
-  progress.value = 0
-
-  // 模拟进度条
-  progressTimer = setInterval(() => {
-    if (progress.value < 90) {
-      progress.value += Math.random() * 8
-    }
-  }, 2000)
 
   try {
     const res = await difyApi.getJobProfile(jobName.value.trim())
     // 解析返回的 JSON 字符串
     const data = typeof res.data === 'string' ? JSON.parse(res.data) : res.data
     profileData.value = data
-    progress.value = 100
     ElMessage.success('分析完成！')
   } catch (e) {
     ElMessage.error('分析失败，请稍后重试')
   } finally {
-    clearInterval(progressTimer)
     loading.value = false
   }
 }
-
-// 页面被缓存离开时清理定时器
-onDeactivated(() => {
-  if (progressTimer) clearInterval(progressTimer)
-})
 </script>
 
 <style scoped>

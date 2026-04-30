@@ -17,15 +17,12 @@
         class="aside-menu"
       >
         <el-menu-item index="/jobs">
-          <el-icon><Search /></el-icon>
           <template #title>职位检索</template>
         </el-menu-item>
         <el-menu-item index="/job-profile">
-          <el-icon><DataAnalysis /></el-icon>
           <template #title>职能画像</template>
         </el-menu-item>
         <el-menu-item index="/diagnosis">
-          <el-icon><Document /></el-icon>
           <template #title>智能诊断</template>
         </el-menu-item>
       </el-menu>
@@ -43,15 +40,11 @@
         <div class="header-right">
           <el-dropdown @command="handleCommand">
             <span class="user-info">
-              <el-icon><User /></el-icon>
               {{ userStore.username }}
-              <el-icon class="el-icon--right"><ArrowDown /></el-icon>
             </span>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item command="logout">
-                  <el-icon><SwitchButton /></el-icon>退出登录
-                </el-dropdown-item>
+                <el-dropdown-item command="logout">退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>

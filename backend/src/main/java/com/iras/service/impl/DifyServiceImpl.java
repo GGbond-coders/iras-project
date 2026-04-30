@@ -128,11 +128,11 @@ public class DifyServiceImpl implements DifyService {
         try {
             return objectMapper.writeValueAsString(new java.util.HashMap<>() {{
                 put("inputs", new java.util.HashMap<>() {{
-                    put(inputKey, new java.util.HashMap<>() {{
+                    put(inputKey, java.util.List.of(new java.util.HashMap<>() {{
                         put("transfer_method", "local_file");
                         put("upload_file_id", uploadFileId);
                         put("type", "document");
-                    }});
+                    }}));
                 }});
                 put("response_mode", "blocking");
                 put("user", "iras-user");

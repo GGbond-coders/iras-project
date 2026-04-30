@@ -20,7 +20,6 @@
           :on-remove="handleRemove"
           accept=".txt,.text,.pdf,.doc,.docx"
         >
-          <el-icon class="el-icon--upload"><UploadFilled /></el-icon>
           <div class="el-upload__text">
             将简历文件拖到此处，或 <em>点击上传</em>
           </div>
@@ -33,7 +32,6 @@
 
         <div class="action-bar">
           <el-button type="primary" size="large" :loading="loading" :disabled="!selectedFile" @click="diagnose">
-            <el-icon v-if="!loading"><MagicStick /></el-icon>
             {{ loading ? 'AI 诊断中...' : '开始诊断' }}
           </el-button>
           <el-button size="large" @click="clearAll" :disabled="loading">清空</el-button>
@@ -43,8 +41,7 @@
 
       <!-- 加载提示 -->
       <div v-if="loading" class="loading-section">
-        <el-progress :percentage="progress" :stroke-width="10" :duration="3" />
-        <p class="loading-text">🤖 AI 正在深度分析您的简历并与岗位库进行匹配，请耐心等待...</p>
+        <p class="loading-text">AI 正在深度分析您的简历并与岗位库进行匹配，请耐心等待...</p>
       </div>
 
       <!-- 诊断结果 -->
@@ -55,7 +52,6 @@
         <div v-if="thinkContent" class="think-section">
           <el-button text type="info" @click="showThink = !showThink">
             {{ showThink ? '隐藏推理过程' : '展示推理过程' }}
-            <el-icon class="el-icon--right"><ArrowDown v-if="!showThink" /><ArrowUp v-else /></el-icon>
           </el-button>
           <el-collapse-transition>
             <div v-show="showThink" class="think-content">
@@ -81,13 +77,7 @@
                   </div>
                 </div>
                 <div class="match-score">
-                  <el-progress
-                    type="circle"
-                    :percentage="match.matched_score"
-                    :color="getScoreColor(match.matched_score)"
-                    :width="90"
-                    :stroke-width="8"
-                  />
+                  <span class="score-value" :style="{ color: getScoreColor(match.matched_score) }">{{ match.matched_score }}%</span>
                   <span class="score-label">匹配分</span>
                 </div>
               </div>
@@ -100,13 +90,13 @@
 
               <!-- 匹配原因 -->
               <div class="section-block">
-                <h4><el-icon color="#67c23a"><CircleCheck /></el-icon> 匹配原因</h4>
+                <h4>匹配原因</h4>
                 <p>{{ match.matched_reason }}</p>
               </div>
 
               <!-- 差距点 -->
               <div class="section-block" v-if="match.gap_points && match.gap_points.length">
-                <h4><el-icon color="#f56c6c"><Warning /></el-icon> 差距分析</h4>
+                <h4>差距分析</h4>
                 <ul class="gap-list">
                   <li v-for="(gap, i) in match.gap_points" :key="i">{{ gap }}</li>
                 </ul>
@@ -114,7 +104,7 @@
 
               <!-- 面试建议 -->
               <div class="section-block" v-if="match.interview_advice && match.interview_advice.length">
-                <h4><el-icon color="#409eff"><ChatDotRound /></el-icon> 面试建议</h4>
+                <h4>面试建议</h4>
                 <ul class="advice-list">
                   <li v-for="(advice, i) in match.interview_advice" :key="i">{{ advice }}</li>
                 </ul>
@@ -134,7 +124,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onDeactivated } from 'vue'
+import { ref, computed } from 'vue'
 import { difyApi } from '../api'
 import { ElMessage } from 'element-plus'
 import { marked } from 'marked'
@@ -142,13 +132,11 @@ import { marked } from 'marked'
 const uploadRef = ref(null)
 const selectedFile = ref(null)
 const loading = ref(false)
-const progress = ref(0)
 const diagnosisResult = ref(false)
 const matches = ref([])
 const rawResult = ref('')
 const thinkContent = ref('')
 const showThink = ref(false)
-let progressTimer = null
 
 const renderedResult = computed(() => {
   return rawResult.value ? marked(rawResult.value) : ''
@@ -183,13 +171,6 @@ async function diagnose() {
   matches.value = []
   rawResult.value = ''
   thinkContent.value = ''
-  progress.value = 0
-
-  progressTimer = setInterval(() => {
-    if (progress.value < 90) {
-      progress.value += Math.random() * 5
-    }
-  }, 2000)
 
   try {
     const res = await difyApi.diagnoseResume(selectedFile.value)
@@ -230,12 +211,10 @@ async function diagnose() {
     }
 
     diagnosisResult.value = true
-    progress.value = 100
     ElMessage.success('诊断完成！')
   } catch (e) {
     ElMessage.error('诊断失败，请稍后重试')
   } finally {
-    clearInterval(progressTimer)
     loading.value = false
   }
 }
@@ -248,10 +227,6 @@ function clearAll() {
   rawResult.value = ''
   thinkContent.value = ''
 }
-
-onDeactivated(() => {
-  if (progressTimer) clearInterval(progressTimer)
-})
 </script>
 
 <style scoped>
@@ -331,6 +306,11 @@ onDeactivated(() => {
 
 .match-score {
   text-align: center;
+}
+
+.score-value {
+  font-size: 28px;
+  font-weight: 700;
 }
 
 .score-label {
