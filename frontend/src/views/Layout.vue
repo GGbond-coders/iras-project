@@ -1,0 +1,149 @@
+<template>
+  <el-container class="layout-container">
+    <!-- 侧边栏 -->
+    <el-aside :width="isCollapse ? '64px' : '220px'" class="layout-aside">
+      <div class="aside-header" @click="isCollapse = !isCollapse">
+        <span class="aside-logo">📋</span>
+        <span v-show="!isCollapse" class="aside-title">IRAS</span>
+      </div>
+
+      <el-menu
+        :default-active="$route.path"
+        router
+        :collapse="isCollapse"
+        background-color="#1e293b"
+        text-color="#94a3b8"
+        active-text-color="#60a5fa"
+        class="aside-menu"
+      >
+        <el-menu-item index="/jobs">
+          <el-icon><Search /></el-icon>
+          <template #title>职位检索</template>
+        </el-menu-item>
+        <el-menu-item index="/job-profile">
+          <el-icon><DataAnalysis /></el-icon>
+          <template #title>职能画像</template>
+        </el-menu-item>
+        <el-menu-item index="/diagnosis">
+          <el-icon><Document /></el-icon>
+          <template #title>智能诊断</template>
+        </el-menu-item>
+      </el-menu>
+    </el-aside>
+
+    <!-- 主内容区 -->
+    <el-container>
+      <el-header class="layout-header">
+        <div class="header-left">
+          <el-breadcrumb separator="/">
+            <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
+            <el-breadcrumb-item>{{ $route.meta.title }}</el-breadcrumb-item>
+          </el-breadcrumb>
+        </div>
+        <div class="header-right">
+          <el-dropdown @command="handleCommand">
+            <span class="user-info">
+              <el-icon><User /></el-icon>
+              {{ userStore.username }}
+              <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+            </span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="logout">
+                  <el-icon><SwitchButton /></el-icon>退出登录
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
+      </el-header>
+
+      <el-main class="layout-main">
+        <!-- 使用 keep-alive 缓存页面 -->
+        <router-view v-slot="{ Component }">
+          <keep-alive>
+            <component :is="Component" />
+          </keep-alive>
+        </router-view>
+      </el-main>
+    </el-container>
+  </el-container>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useUserStore } from '../store/user'
+
+const router = useRouter()
+const userStore = useUserStore()
+const isCollapse = ref(false)
+
+function handleCommand(command) {
+  if (command === 'logout') {
+    userStore.logout()
+    router.push('/login')
+  }
+}
+</script>
+
+<style scoped>
+.layout-container {
+  height: 100vh;
+}
+
+.layout-aside {
+  background-color: #1e293b;
+  transition: width 0.3s;
+  overflow: hidden;
+}
+
+.aside-header {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  gap: 10px;
+  border-bottom: 1px solid #334155;
+}
+
+.aside-logo {
+  font-size: 28px;
+}
+
+.aside-title {
+  color: #f1f5f9;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.aside-menu {
+  border-right: none;
+}
+
+.layout-header {
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  padding: 0 20px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: #606266;
+  font-size: 14px;
+}
+
+.layout-main {
+  background-color: #f5f7fa;
+  padding: 20px;
+  overflow-y: auto;
+}
+</style>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.iras.mapper.JobMapper">
+
+    <select id="searchJobs" resultType="com.iras.entity.JobInfo">
+        SELECT * FROM job_info
+        <where>
+            <if test="jobName != null and jobName != ''">
+                AND job_name LIKE CONCAT('%', #{jobName}, '%')
+            </if>
+            <if test="city != null and city != ''">
+                AND city LIKE CONCAT('%', #{city}, '%')
+            </if>
+            <if test="salaryMin != null and salaryMin != ''">
+                AND CAST(REPLACE(REPLACE(salary, 'k', ''), 'K', '') AS UNSIGNED) &gt;= #{salaryMin}
+            </if>
+            <if test="salaryMax != null and salaryMax != ''">
+                AND CAST(REPLACE(REPLACE(salary, 'k', ''), 'K', '') AS UNSIGNED) &lt;= #{salaryMax}
+            </if>
+        </where>
+        ORDER BY id DESC
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <select id="countSearchJobs" resultType="long">
+        SELECT COUNT(*) FROM job_info
+        <where>
+            <if test="jobName != null and jobName != ''">
+                AND job_name LIKE CONCAT('%', #{jobName}, '%')
+            </if>
+            <if test="city != null and city != ''">
+                AND city LIKE CONCAT('%', #{city}, '%')
+            </if>
+            <if test="salaryMin != null and salaryMin != ''">
+                AND CAST(REPLACE(REPLACE(salary, 'k', ''), 'K', '') AS UNSIGNED) &gt;= #{salaryMin}
+            </if>
+            <if test="salaryMax != null and salaryMax != ''">
+                AND CAST(REPLACE(REPLACE(salary, 'k', ''), 'K', '') AS UNSIGNED) &lt;= #{salaryMax}
+            </if>
+        </where>
+    </select>
+
+</mapper>
