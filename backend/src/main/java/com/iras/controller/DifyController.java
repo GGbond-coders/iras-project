@@ -134,7 +134,7 @@ public class DifyController {
         DiagnosisRecord record = new DiagnosisRecord();
         record.setUserId(user.getId());
         record.setResumeFilename(filename);
-        record.setDiagnosisResult(result);
+        record.setDiagnosisResult(cleanResult);
         record.setThinkContent(thinkContent);
         record.setMatchCount(matchCount);
         diagnosisService.saveRecord(record);
