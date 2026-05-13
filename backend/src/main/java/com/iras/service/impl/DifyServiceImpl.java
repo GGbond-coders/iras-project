@@ -20,6 +20,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -191,7 +193,7 @@ public class DifyServiceImpl implements DifyService {
                 put("inputs", new java.util.HashMap<>() {{
                     put(inputKey, inputValue);  // 设置输入参数
                 }});
-                put("response_mode", "blocking");  // 阻塞模式，等待 AI 推理完成
+                put("response_mode", "streaming");  // 流式模式，避免网关超时
                 put("user", "iras-user");           // 用户标识
             }});
         } catch (Exception e) {
@@ -231,7 +233,7 @@ public class DifyServiceImpl implements DifyService {
                         put("type", "document");                // 文件类型为文档
                     }}));
                 }});
-                put("response_mode", "blocking");  // 阻塞模式
+                put("response_mode", "streaming");  // 流式模式，避免网关超时
                 put("user", "iras-user");
             }});
         } catch (Exception e) {
@@ -256,6 +258,77 @@ public class DifyServiceImpl implements DifyService {
      * @return AI 生成的结果文本
      * @throws RuntimeException API 调用失败时抛出异常
      */
+    /**
+     * 解析 Dify SSE 流式响应。
+     * <p>
+     * Dify streaming 模式返回 Server-Sent Events 格式，关键事件：
+     * <ul>
+     *   <li>text_chunk - 文本片段，需拼接</li>
+     *   <li>workflow_finished - 工作流完成，包含完整 outputs</li>
+     * </ul>
+     * 优先从 workflow_finished 的 outputs.result 取结果，
+     * 若无则返回拼接的 text_chunk 内容。
+     * </p>
+     *
+     * @param inputStream SSE 响应流
+     * @return AI 生成的结果文本
+     * @throws Exception 读取异常
+     */
+    private String parseSseStream(java.io.InputStream inputStream) throws Exception {
+        StringBuilder textChunks = new StringBuilder();
+        String finalResult = null;
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.isEmpty()) continue;  // 跳过空行（SSE 事件分隔符）
+
+                // SSE 格式: "data: {json}" 或 "event: xxx"
+                if (line.startsWith("data: ")) {
+                    String jsonStr = line.substring(6).trim();
+                    if ("[DONE]".equals(jsonStr)) break;
+
+                    try {
+                        JsonNode event = objectMapper.readTree(jsonStr);
+                        String eventType = event.has("event") ? event.get("event").asText() : "";
+
+                        switch (eventType) {
+                            case "text_chunk":
+                                // 拼接文本片段
+                                if (event.has("data") && event.get("data").has("text")) {
+                                    textChunks.append(event.get("data").get("text").asText());
+                                }
+                                break;
+
+                            case "workflow_finished":
+                                // 工作流完成，提取最终结果
+                                JsonNode outputs = event.path("data").path("outputs");
+                                if (outputs.has("result")) {
+                                    finalResult = outputs.get("result").asText();
+                                }
+                                break;
+
+                            default:
+                                // workflow_started, node_started 等事件，忽略
+                                break;
+                        }
+                    } catch (Exception e) {
+                        log.debug("SSE 行解析跳过: {}", line);
+                    }
+                }
+            }
+        }
+
+        // 优先返回 workflow_finished 的 result，否则返回拼接的文本
+        if (finalResult != null) {
+            return finalResult;
+        }
+        if (textChunks.length() > 0) {
+            return textChunks.toString();
+        }
+        throw new RuntimeException("Dify streaming 响应中未获取到结果");
+    }
+
     /** 最大重试次数（针对 504 等暂时性错误） */
     private static final int MAX_RETRIES = 2;
 
@@ -303,20 +376,16 @@ public class DifyServiceImpl implements DifyService {
                 java.io.InputStream inputStream = (responseCode >= 200 && responseCode < 300)
                         ? connection.getInputStream()
                         : connection.getErrorStream();
-                String responseBody = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-                log.info("Dify API 响应: code={}, body={}", responseCode, responseBody);
 
                 if (responseCode >= 200 && responseCode < 300) {
-                    // 解析响应 JSON，提取 AI 推理结果
-                    JsonNode root = objectMapper.readTree(responseBody);
-                    JsonNode outputs = root.path("data").path("outputs");
-                    // 优先返回 result 字段
-                    if (outputs.has("result")) {
-                        return outputs.get("result").asText();
-                    }
-                    // 如果没有 result 字段，返回完整响应体
-                    return responseBody;
+                    // 流式模式：逐行解析 SSE 事件
+                    String result = parseSseStream(inputStream);
+                    return result;
                 }
+
+                // 非 2xx，读取完整错误响应
+                String responseBody = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+                log.error("Dify API 响应: code={}, body={}", responseCode, responseBody);
 
                 // 502/503/504 等暂时性错误，可重试
                 boolean retryable = (responseCode == 502 || responseCode == 503 || responseCode == 504);
