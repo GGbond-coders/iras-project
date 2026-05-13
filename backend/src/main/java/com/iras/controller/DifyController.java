@@ -3,62 +3,51 @@
  * @description Dify AI 服务控制器。
  *              提供职能画像分析和简历智能诊断两个 AI 接口。
  *              将前端请求转发到 Dify AI 平台的 Workflow API。
+ *              诊断完成后自动保存诊断记录到数据库。
  *
  * @author IRAS Team
  * @since 1.0
  */
 package com.iras.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iras.dto.Result;
+import com.iras.entity.DiagnosisRecord;
+import com.iras.entity.User;
+import com.iras.mapper.UserMapper;
+import com.iras.service.DiagnosisService;
 import com.iras.service.DifyService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
-/**
- * Dify AI 服务控制器。
- * <p>
- * 提供两个 AI 增强接口：
- * <ul>
- *   <li>职能画像：输入职位名称，AI 生成该职位的技能要求、工具清单等完整画像</li>
- *   <li>智能诊断：上传简历文件，AI 进行岗位匹配和诊断分析</li>
- * </ul>
- * 两个接口的处理时间较长（约 2-3 分钟），需要设置较长的超时时间。
- * </p>
- */
-@Slf4j                          // 启用 Lombok 日志
-@RestController                  // 声明为 REST 控制器
-@RequestMapping("/api/dify")     // 映射请求路径前缀
+@Slf4j
+@RestController
+@RequestMapping("/api/dify")
 @RequiredArgsConstructor
 public class DifyController {
 
-    /** Dify 服务，封装与 Dify AI 平台的交互逻辑 */
     private final DifyService difyService;
+    private final DiagnosisService diagnosisService;
+    private final UserMapper userMapper;
+    private final ObjectMapper objectMapper;
 
     /**
      * 职能画像接口 - 接收职位名称，转发到 Dify AI 平台进行分析。
-     * <p>
-     * 请求体格式：{@code {"job_name": "软件工程师"}}
-     * 返回该职位的完整画像信息（技能要求、工具、经验等）。
-     * </p>
-     *
-     * @param request 请求体，包含 job_name 字段
-     * @return 统一响应结果，包含 AI 生成的职能画像 JSON 字符串
      */
     @PostMapping("/job-profile")
     public Result<String> getJobProfile(@RequestBody Map<String, String> request) {
-        // 从请求体中获取职位名称
         String jobName = request.get("job_name");
-        // 校验职位名称是否为空
         if (jobName == null || jobName.isBlank()) {
             return Result.error(400, "职位名称不能为空");
         }
         try {
             log.info("调用职能画像 API, jobName={}", jobName);
-            // 调用 Dify 服务获取职能画像
             String result = difyService.getJobProfile(jobName);
             return Result.success(result);
         } catch (Exception e) {
@@ -69,28 +58,86 @@ public class DifyController {
 
     /**
      * 智能诊断接口 - 接收简历文件，转发到 Dify AI 平台进行诊断分析。
-     * <p>
-     * 使用 multipart/form-data 格式上传文件。
-     * AI 将对简历进行深度分析，匹配最适合的岗位并生成诊断报告。
-     * </p>
-     *
-     * @param file 上传的简历文件，支持 .txt/.pdf/.doc/.docx 格式
-     * @return 统一响应结果，包含 AI 生成的诊断报告 JSON 字符串
+     * 诊断完成后自动将结果保存到诊断历史记录表。
      */
     @PostMapping("/diagnose")
-    public Result<String> diagnoseResume(@RequestParam("file") MultipartFile file) {
-        // 校验文件是否为空
+    public Result<String> diagnoseResume(@RequestParam("file") MultipartFile file,
+                                         Authentication authentication) {
         if (file.isEmpty()) {
             return Result.error(400, "请上传简历文件");
         }
         try {
             log.info("调用智能诊断 API, filename={}, size={}", file.getOriginalFilename(), file.getSize());
-            // 调用 Dify 服务进行简历诊断
             String result = difyService.diagnoseResume(file);
+
+            // 诊断成功后保存记录
+            try {
+                saveDiagnosisRecord(file.getOriginalFilename(), result, authentication);
+            } catch (Exception e) {
+                // 保存记录失败不影响诊断结果的返回
+                log.warn("保存诊断记录失败", e);
+            }
+
             return Result.success(result);
         } catch (Exception e) {
             log.error("智能诊断 API 调用失败", e);
             return Result.error(500, "AI 诊断失败: " + e.getMessage());
         }
+    }
+
+    /**
+     * 保存诊断记录到数据库。
+     * <p>
+     * 从 AI 返回的结果中提取 think 标签内容和匹配数量，
+     * 构建 DiagnosisRecord 并持久化。
+     * </p>
+     */
+    private void saveDiagnosisRecord(String filename, String result, Authentication authentication) {
+        // 获取当前用户
+        String username = (String) authentication.getPrincipal();
+        User user = userMapper.findByUsername(username);
+        if (user == null) return;
+
+        // 提取 think 标签内容
+        String thinkContent = null;
+        String cleanResult = result;
+        java.util.regex.Matcher thinkMatcher = java.util.regex.Pattern
+                .compile("(?s)<think>(.*?)</think>").matcher(result);
+        if (thinkMatcher.find()) {
+            thinkContent = thinkMatcher.group(1).trim();
+            cleanResult = result.replaceFirst("(?s)<think>.*?</think>", "").trim();
+        }
+
+        // 尝试解析匹配数量
+        int matchCount = 0;
+        try {
+            String jsonStr = cleanResult;
+            // 尝试从嵌套结构中提取
+            JsonNode root = objectMapper.readTree(jsonStr);
+            if (root.isArray()) {
+                matchCount = root.size();
+            } else if (root.has("matches")) {
+                matchCount = root.get("matches").size();
+            } else if (root.has("result")) {
+                String inner = root.get("result").asText();
+                JsonNode innerNode = objectMapper.readTree(inner);
+                matchCount = innerNode.isArray() ? innerNode.size() : 1;
+            } else {
+                matchCount = 1;
+            }
+        } catch (Exception e) {
+            // 非 JSON 格式，无法计算匹配数
+            matchCount = 0;
+        }
+
+        // 构建并保存记录
+        DiagnosisRecord record = new DiagnosisRecord();
+        record.setUserId(user.getId());
+        record.setResumeFilename(filename);
+        record.setDiagnosisResult(result);
+        record.setThinkContent(thinkContent);
+        record.setMatchCount(matchCount);
+        diagnosisService.saveRecord(record);
+        log.info("诊断记录已保存, userId={}, filename={}", user.getId(), filename);
     }
 }

@@ -88,6 +88,7 @@ public class AuthServiceImpl implements AuthService {
         data.put("token", token);
         data.put("username", user.getUsername());
         data.put("email", user.getEmail());
+        data.put("role", user.getRole() != null ? user.getRole() : "user");
 
         return Result.success("注册成功", data);
     }
@@ -132,6 +133,7 @@ public class AuthServiceImpl implements AuthService {
         data.put("token", token);
         data.put("username", user.getUsername());
         data.put("email", user.getEmail());
+        data.put("role", user.getRole() != null ? user.getRole() : "user");
 
         return Result.success("登录成功", data);
     }

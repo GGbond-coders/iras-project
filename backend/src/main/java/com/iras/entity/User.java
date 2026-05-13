@@ -40,6 +40,9 @@ public class User {
     /** 联系邮箱（可选） */
     private String email;
 
+    /** 用户角色（user-普通用户, admin-管理员） */
+    private String role;
+
     /** 用户注册时间 */
     private LocalDateTime createTime;
 }

@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS `user` (
   `username` varchar(50) NOT NULL COMMENT '用户名',        -- 用户名（唯一约束）
   `password` varchar(255) NOT NULL COMMENT 'BCrypt加密密码', -- BCrypt 加密后的密码
   `email` varchar(100) DEFAULT NULL COMMENT '联系邮箱',    -- 联系邮箱（可选）
+  `role` varchar(20) NOT NULL DEFAULT 'user' COMMENT '用户角色: user-普通用户, admin-管理员', -- 用户角色
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间', -- 注册时间（自动填充）
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_username` (`username`)                   -- 用户名唯一索引，防止重复注册
@@ -58,3 +59,21 @@ INSERT INTO `job_info` (`job_name`, `company_name`, `city`, `salary`, `jd_text`,
 ('后端开发工程师', '上海拼多多信息技术有限公司', '上海', '25000', '5年及以上 本科 Java Go 微服务 分布式 高并发 Spring Cloud Kubernetes 五险一金 股票期权', '全职'),
 ('数据分析师', '广州网易计算机系统有限公司', '广州', '15000', '2年及以上 本科 SQL Python 数据分析 Tableau 数据可视化 统计学 五险一金 年终奖金', '全职'),
 ('算法工程师', '北京百度网讯科技有限公司', '北京', '30000', '3年及以上 硕士 机器学习 深度学习 NLP CV Python TensorFlow PyTorch 五险一金 股票期权', '全职');
+
+-- ==============================================================================
+-- 4. 诊断历史记录表 - 存储用户的简历诊断结果
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS `diagnosis_record` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `user_id` bigint NOT NULL COMMENT '关联用户ID',
+  `resume_filename` varchar(255) NOT NULL COMMENT '简历文件名',
+  `resume_content` mediumtext COMMENT '简历提取的文本内容（用于回顾）',
+  `diagnosis_result` mediumtext COMMENT '诊断结果JSON（AI返回的完整报告）',
+  `think_content` mediumtext COMMENT 'AI推理过程（think标签内容）',
+  `match_count` int DEFAULT 0 COMMENT '匹配到的岗位数量',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '诊断时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_create_time` (`create_time`),
+  CONSTRAINT `fk_diagnosis_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='诊断历史记录表';
