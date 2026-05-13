@@ -12,6 +12,7 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import router from '../router'
+import { useUserStore } from '../store/user'
 
 const api = axios.create({
   baseURL: '/iras',
@@ -27,6 +28,7 @@ api.interceptors.request.use(config => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+  console.log('[API Request]', config.method?.toUpperCase(), config.url, token ? 'Token: ' + token.substring(0, 20) + '...' : 'Token: NULL')
   return config
 })
 
@@ -41,11 +43,16 @@ api.interceptors.response.use(
     return data
   },
   error => {
+    console.error('[API Error]', error.response?.status, error.config?.url, error.response?.data)
     if (error.response?.status === 401) {
       localStorage.removeItem('token')
       localStorage.removeItem('username')
       localStorage.removeItem('email')
       localStorage.removeItem('role')
+      // 同步清除 Pinia store
+      try {
+        useUserStore().logout()
+      } catch (_) { /* ignore */ }
       router.push('/login')
       ElMessage.error('登录已过期，请重新登录')
     } else {

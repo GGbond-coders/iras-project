@@ -256,52 +256,87 @@ public class DifyServiceImpl implements DifyService {
      * @return AI 生成的结果文本
      * @throws RuntimeException API 调用失败时抛出异常
      */
+    /** 最大重试次数（针对 504 等暂时性错误） */
+    private static final int MAX_RETRIES = 2;
+
+    /** 重试间隔（毫秒） */
+    private static final long RETRY_DELAY_MS = 5000;
+
+    /**
+     * 调用 Dify Workflow API 的通用方法（含重试机制）。
+     * <p>
+     * 执行流程：
+     * 1. 建立 HTTP 连接并设置请求头
+     * 2. 写入 JSON 请求体
+     * 3. 读取响应并判断状态码
+     * 4. 从响应中提取 AI 推理结果（data.outputs.result）
+     * 5. 若遇 502/503/504 等暂时性错误，自动重试最多 {@value MAX_RETRIES} 次
+     * </p>
+     *
+     * @param urlStr      API 完整 URL
+     * @param requestBody JSON 请求体字符串
+     * @param apiKey      Dify API Key（Bearer Token）
+     * @return AI 生成的结果文本
+     * @throws RuntimeException API 调用失败时抛出异常
+     */
     private String callDifyApi(String urlStr, String requestBody, String apiKey) {
-        HttpURLConnection connection = null;
-        try {
-            URL url = new URL(urlStr);
-            connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("POST");
-            connection.setRequestProperty("Authorization", "Bearer " + apiKey);  // 设置认证头
-            connection.setRequestProperty("Content-Type", "application/json");
-            connection.setDoOutput(true);
-            connection.setConnectTimeout(300000);  // 连接超时 5 分钟（AI 推理耗时较长）
-            connection.setReadTimeout(300000);     // 读取超时 5 分钟
+        int attempt = 0;
+        while (true) {
+            HttpURLConnection connection = null;
+            try {
+                URL url = new URL(urlStr);
+                connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("POST");
+                connection.setRequestProperty("Authorization", "Bearer " + apiKey);  // 设置认证头
+                connection.setRequestProperty("Content-Type", "application/json");
+                connection.setDoOutput(true);
+                connection.setConnectTimeout(300000);  // 连接超时 5 分钟（AI 推理耗时较长）
+                connection.setReadTimeout(300000);     // 读取超时 5 分钟
 
-            // 写入请求体
-            try (OutputStream os = connection.getOutputStream()) {
-                os.write(requestBody.getBytes(StandardCharsets.UTF_8));
-            }
-
-            // 读取响应
-            int responseCode = connection.getResponseCode();
-            java.io.InputStream inputStream = (responseCode >= 200 && responseCode < 300)
-                    ? connection.getInputStream()
-                    : connection.getErrorStream();
-            String responseBody = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-            log.info("Dify API 响应: code={}, body={}", responseCode, responseBody);
-
-            if (responseCode >= 200 && responseCode < 300) {
-                // 解析响应 JSON，提取 AI 推理结果
-                JsonNode root = objectMapper.readTree(responseBody);
-                JsonNode outputs = root.path("data").path("outputs");
-                // 优先返回 result 字段
-                if (outputs.has("result")) {
-                    return outputs.get("result").asText();
+                // 写入请求体
+                try (OutputStream os = connection.getOutputStream()) {
+                    os.write(requestBody.getBytes(StandardCharsets.UTF_8));
                 }
-                // 如果没有 result 字段，返回完整响应体
-                return responseBody;
-            } else {
+
+                // 读取响应
+                int responseCode = connection.getResponseCode();
+                java.io.InputStream inputStream = (responseCode >= 200 && responseCode < 300)
+                        ? connection.getInputStream()
+                        : connection.getErrorStream();
+                String responseBody = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+                log.info("Dify API 响应: code={}, body={}", responseCode, responseBody);
+
+                if (responseCode >= 200 && responseCode < 300) {
+                    // 解析响应 JSON，提取 AI 推理结果
+                    JsonNode root = objectMapper.readTree(responseBody);
+                    JsonNode outputs = root.path("data").path("outputs");
+                    // 优先返回 result 字段
+                    if (outputs.has("result")) {
+                        return outputs.get("result").asText();
+                    }
+                    // 如果没有 result 字段，返回完整响应体
+                    return responseBody;
+                }
+
+                // 502/503/504 等暂时性错误，可重试
+                boolean retryable = (responseCode == 502 || responseCode == 503 || responseCode == 504);
+                if (retryable && attempt < MAX_RETRIES) {
+                    attempt++;
+                    log.warn("Dify API 返回 {}，第 {}/{} 次重试，等待 {}ms...", responseCode, attempt, MAX_RETRIES, RETRY_DELAY_MS);
+                    try { Thread.sleep(RETRY_DELAY_MS); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+                    continue;
+                }
+
                 throw new RuntimeException("Dify API 调用失败: " + responseCode + " - " + responseBody);
+            } catch (RuntimeException e) {
+                throw e;
+            } catch (Exception e) {
+                log.error("调用 Dify API 异常", e);
+                throw new RuntimeException("调用 Dify API 失败: " + e.getMessage(), e);
+            } finally {
+                // 释放 HTTP 连接
+                if (connection != null) connection.disconnect();
             }
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("调用 Dify API 异常", e);
-            throw new RuntimeException("调用 Dify API 失败: " + e.getMessage(), e);
-        } finally {
-            // 释放 HTTP 连接
-            if (connection != null) connection.disconnect();
         }
     }
 }
