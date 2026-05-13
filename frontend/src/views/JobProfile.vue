@@ -1,3 +1,12 @@
+<!--
+  @file JobProfile.vue
+  @description 职能画像分析页面组件。
+               用户输入职位名称后，调用 Dify AI 接口生成该职位的完整画像，
+               包括硬技能、软技能、常用工具、经验与学历要求等维度的分析结果。
+               分析结果以卡片网格形式展示，约需 2 分钟完成。
+  @author IRAS Team
+  @since 1.0
+-->
 <template>
   <div class="profile-page">
     <el-card shadow="never">
@@ -7,6 +16,7 @@
         </div>
       </template>
 
+      <!-- 输入区域 -->
       <div class="input-section">
         <el-input
           v-model="jobName"
@@ -25,22 +35,24 @@
         <p class="input-tip">AI 将为您生成该职位的技能要求、工具清单、经验要求等完整画像（约需 2 分钟）</p>
       </div>
 
-      <!-- 加载提示 -->
+      <!-- AI 分析中加载提示 -->
       <div v-if="loading" class="loading-section">
         <p class="loading-text">AI 正在深度分析职位画像，请耐心等待...</p>
       </div>
 
-      <!-- 分析结果 -->
+      <!-- 分析结果展示区域 -->
       <div v-if="profileData && !loading" class="result-section">
         <el-divider />
 
+        <!-- 画像标题 -->
         <div class="profile-header">
           <h2>{{ profileData.job_title }}</h2>
           <el-tag type="success" size="large">分析完成</el-tag>
         </div>
 
+        <!-- 第一行：硬技能 + 软技能 -->
         <el-row :gutter="20" style="margin-top: 24px">
-          <!-- 硬技能 -->
+          <!-- 硬技能卡片 -->
           <el-col :span="12">
             <el-card class="skill-card" shadow="hover">
               <template #header>
@@ -56,7 +68,7 @@
             </el-card>
           </el-col>
 
-          <!-- 软技能 -->
+          <!-- 软技能卡片 -->
           <el-col :span="12">
             <el-card class="skill-card" shadow="hover">
               <template #header>
@@ -73,8 +85,9 @@
           </el-col>
         </el-row>
 
+        <!-- 第二行：工具 + 经验学历 -->
         <el-row :gutter="20" style="margin-top: 20px">
-          <!-- 工具 -->
+          <!-- 常用工具卡片 -->
           <el-col :span="12">
             <el-card class="skill-card" shadow="hover">
               <template #header>
@@ -90,7 +103,7 @@
             </el-card>
           </el-col>
 
-          <!-- 经验与学历 -->
+          <!-- 经验与学历要求卡片 -->
           <el-col :span="12">
             <el-card class="skill-card" shadow="hover">
               <template #header>
@@ -115,15 +128,53 @@
 </template>
 
 <script setup>
+/**
+ * 职能画像分析页面逻辑。
+ * <p>
+ * 功能：
+ * <ul>
+ *   <li>接收用户输入的职位名称</li>
+ *   <li>调用 Dify AI 接口进行职能画像分析</li>
+ *   <li>解析 AI 返回的 JSON 数据并展示</li>
+ * </ul>
+ * </p>
+ */
 import { ref } from 'vue'
 import { difyApi } from '../api'
 import { ElMessage } from 'element-plus'
 
+/** 用户输入的职位名称 */
 const jobName = ref('')
+
+/** AI 分析加载状态 */
 const loading = ref(false)
+
+/**
+ * AI 返回的职能画像数据。
+ * <p>
+ * 结构示例：
+ * <pre>
+ * {
+ *   job_title: "软件工程师",
+ *   hard_skills: ["Java", "Spring", ...],
+ *   soft_skills: ["沟通能力", "团队协作", ...],
+ *   tools: ["IDEA", "Git", ...],
+ *   experience: "3-5年",
+ *   education: "本科及以上"
+ * }
+ * </pre>
+ * </p>
+ */
 const profileData = ref(null)
 
+/**
+ * 执行 AI 职能画像分析。
+ * <p>
+ * 流程：校验输入 -> 调用 API -> 解析 JSON 结果 -> 展示数据
+ * </p>
+ */
 async function analyze() {
+  // 校验输入是否为空
   if (!jobName.value.trim()) {
     ElMessage.warning('请输入职位名称')
     return
@@ -133,8 +184,9 @@ async function analyze() {
   profileData.value = null
 
   try {
+    // 调用 Dify 职能画像 API
     const res = await difyApi.getJobProfile(jobName.value.trim())
-    // 解析返回的 JSON 字符串
+    // 解析返回的 JSON 字符串（AI 返回的可能是字符串格式的 JSON）
     const data = typeof res.data === 'string' ? JSON.parse(res.data) : res.data
     profileData.value = data
     ElMessage.success('分析完成！')
@@ -156,6 +208,7 @@ async function analyze() {
   font-weight: 600;
 }
 
+/* 输入区域居中 */
 .input-section {
   max-width: 800px;
   margin: 0 auto;
@@ -168,6 +221,7 @@ async function analyze() {
   text-align: center;
 }
 
+/* 加载提示区域 */
 .loading-section {
   margin-top: 40px;
   text-align: center;
@@ -179,6 +233,7 @@ async function analyze() {
   font-size: 14px;
 }
 
+/* 画像标题区域 */
 .profile-header {
   display: flex;
   align-items: center;
@@ -190,6 +245,7 @@ async function analyze() {
   color: #303133;
 }
 
+/* 技能卡片样式 */
 .skill-card {
   height: 100%;
 }
@@ -202,6 +258,7 @@ async function analyze() {
   font-size: 15px;
 }
 
+/* 技能列表样式 */
 .skill-list {
   list-style: none;
   padding: 0;
@@ -223,6 +280,7 @@ async function analyze() {
   border-bottom: none;
 }
 
+/* 工具标签容器 */
 .tool-tags {
   display: flex;
   flex-wrap: wrap;
@@ -233,6 +291,7 @@ async function analyze() {
   font-size: 13px;
 }
 
+/* 经验与学历区块 */
 .exp-section h4 {
   font-size: 14px;
   color: #303133;
