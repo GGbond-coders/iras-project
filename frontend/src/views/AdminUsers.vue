@@ -56,7 +56,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onActivated } from 'vue'
 import { adminApi } from '../api'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -103,7 +103,7 @@ async function handleDelete(user) {
   }
 }
 
-onMounted(() => {
+onActivated(() => {
   fetchUsers()
 })
 </script>

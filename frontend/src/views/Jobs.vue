@@ -114,7 +114,7 @@
  * </ul>
  * </p>
  */
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onActivated } from 'vue'
 import { jobApi } from '../api'
 
 /** 表格加载状态 */
@@ -198,7 +198,7 @@ function viewDetail(job) {
 /**
  * 组件挂载后自动加载职位列表。
  */
-onMounted(() => {
+onActivated(() => {
   fetchJobs()
 })
 </script>

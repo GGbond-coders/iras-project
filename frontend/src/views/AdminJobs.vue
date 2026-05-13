@@ -86,7 +86,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onActivated } from 'vue'
 import { adminApi } from '../api'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -183,7 +183,7 @@ async function handleDelete(job) {
   }
 }
 
-onMounted(() => {
+onActivated(() => {
   fetchJobs()
 })
 </script>

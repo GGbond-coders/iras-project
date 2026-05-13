@@ -85,7 +85,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onActivated } from 'vue'
 import { adminApi } from '../api'
 import { ElMessage } from 'element-plus'
 
@@ -119,7 +119,7 @@ async function fetchStats() {
   }
 }
 
-onMounted(() => {
+onActivated(() => {
   fetchStats()
 })
 </script>

@@ -101,7 +101,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onActivated } from 'vue'
 import { diagnosisApi } from '../api'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { marked } from 'marked'
@@ -180,7 +180,7 @@ async function handleDelete(row) {
   }
 }
 
-onMounted(() => {
+onActivated(() => {
   fetchHistory()
 })
 </script>
