@@ -31,8 +31,9 @@ jwt:
 # Dify API 配置
 dify:
   base-url: https://api.dify.ai/v1
-  job-profile-key: app-SVp3ITSYP4x33OGHZ2cOEKOc
-  resume-diagnosis-key: app-vlhpBeJF3XsF0TaMMqyqAAKP
+  job-profile-key: app-1S7R9zv0wEmZDKpk5uB4IXcB
+
+  resume-diagnosis-key: app-eAFPOpKqhM1WKEObg8HZJOY1
 
 logging:
   level:
