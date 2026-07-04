@@ -51,8 +51,8 @@ jwt:
 # --- Dify AI 平台配置 ---
 dify:
   base-url: https://api.dify.ai/v1             # Dify API 基础 URL
-  job-profile-key: app-1S7R9zv0wEmZDKpk5uB4IXcB    # 职能画像 Workflow 的 API Key
-  resume-diagnosis-key: app-eAFPOpKqhM1WKEObg8HZJOY1  # 简历诊断 Workflow 的 API Key
+  job-profile-key: **************    # 职能画像 Workflow 的 API Key
+  resume-diagnosis-key:****************  # 简历诊断 Workflow 的 API Key
 
 # --- 日志配置 ---
 logging:
